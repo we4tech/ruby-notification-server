@@ -1,0 +1,12 @@
+production:
+  hostname: localhost
+  port: 8081
+
+development:
+    hostname: localhost
+    port: 2212
+
+test:
+  hostname: localhost
+  port: 2211
+  forever: true

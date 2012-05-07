@@ -1,0 +1,8 @@
+script: "bin/rake --trace 2>&1"
+bundler_args: "--binstubs --without development"
+rvm:
+  - 1.9.3
+
+notifications:
+  email:
+    - hasan@welltreat.us
