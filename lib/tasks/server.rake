@@ -36,9 +36,9 @@ module NotificationServer
 
               _cb = CommandBuilder.new
               _cb << "/usr/bin/env forever -v -a" <<
-                       "-o `$PWD`/log/notification_server.log" <<
-                       "-e `$PWD`/log/notification_server_error.log" <<
-                       "-l `$PWD`/log/forever.log" <<
+                       "-o $PWD/log/notification_server.log" <<
+                       "-e $PWD/log/notification_server_error.log" <<
+                       "-l $PWD/log/forever.log" <<
                        "`which notification-server`" <<
                        _argv
               _pid = create_pid(spawn(_cb.build), _env)
