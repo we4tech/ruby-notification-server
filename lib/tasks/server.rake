@@ -2,6 +2,21 @@ require 'fileutils'
 
 module NotificationServer
   module Tasks
+    class CommandBuilder
+      def initialize
+        @cmds = []
+      end
+
+      def <<(cmd)
+        @cmds << cmd
+        self
+      end
+
+      def build
+        @cmds.flatten.join(' ')
+      end
+    end
+
     class Server
       class << self
 
@@ -10,25 +25,48 @@ module NotificationServer
           _argv   = []
           _argv << "-p #{_config['port']}"
 
-          if _config['host'].present?
-            _argv << "-H #{_config['host']}"
+          if _config['hostname'].present?
+            _argv << "-H #{_config['hostname']}"
           end
 
           if cmd_exist?
-            _pid = create_pid(spawn("/usr/bin/env notification-server #{_argv.join(' ')}"), _env)
-            STDOUT.puts "Process id - #{_pid}"
+            if 'true' == _config['forever'].to_s
+              %w(notification_server.log notification_server_error.log forever.log)
+                .each { |log_file| `touch log/#{log_file}` }
+
+              _cb = CommandBuilder.new
+              _cb << "/usr/bin/env forever -v -a" <<
+                       "-o `PWD`/log/notification_server.log" <<
+                       "-e `PWD`/log/notification_server_error.log" <<
+                       "-l `PWD`/log/forever.log" <<
+                       "`which notification-server`" <<
+                       _argv
+              _pid = create_pid(spawn(_cb.build), _env)
+              STDOUT.puts "Process id - #{_pid}"
+            else
+              _pid = create_pid(spawn("/usr/bin/env notification-server #{_argv.join(' ')}"), _env)
+              STDOUT.puts "Process id - #{_pid}"
+            end
           else
             STDERR.puts "`notification-server` command not found, please install `npm install -g notification-server`"
           end
         end
 
         def stop(_env)
+          _config = config(_env)
+          _forever = 'true' == _config['forever'].to_s
+
           existing_pid = read_pid(_env)
-          if existing_pid.present?
+
+          if !_forever && existing_pid.present?
             output = `kill #{existing_pid}`
             STDOUT.puts output
             STDOUT.puts 'Notification server stopped.'
             remove_pid(_env)
+          elsif _forever
+            spawn("/usr/bin/env forever stop `which notification-server`")
+            remove_pid(_env)
+            STDOUT.puts 'Notification server stopped.'
           else
             STDERR.puts "No such existing notification server process found"
           end
